@@ -1,0 +1,12 @@
+pull.py
+__pycache__/
+.env
+.env*
+.DS_Store
+data/
+.venv/
+venv/
+env/
+ENV/
+pipenv_*
+.vscode/
