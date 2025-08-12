@@ -7,7 +7,7 @@ import h3raster
 def insert_global_data():
     """ Insert global population data with country codes into a SQLite database. """
 
-    pop_gpkg_path = "h3_raster/data/populations/kontur_population_20231101_r6.gpkg"
+    pop_gpkg_path = "/Users/mesposito/Desktop/yext_research/h3_raster/data/populations/kontur_population_20231101_r6.gpkg"
     pop_gdf = gpd.read_file(pop_gpkg_path, layer='population')
 
     def get_lat_lng(h3_cell):
@@ -18,7 +18,7 @@ def insert_global_data():
     pop_gdf['lng'] = pop_gdf['lat_lng'].apply(lambda x: x[1])
     pop_gdf.drop(columns=['lat_lng'], inplace=True)
 
-    world_shp_path = "h3_raster/data/world-administrative-boundaries/world-administrative-boundaries.shp"
+    world_shp_path = "/Users/mesposito/Desktop/yext_research/h3_raster/data/world-administrative-boundaries/world-administrative-boundaries.shp"
     world_gdf = gpd.read_file(world_shp_path)
 
     pop_gdf['geometry'] = pop_gdf.apply(lambda row: Point(row['lng'], row['lat']), axis=1)
@@ -31,12 +31,12 @@ def insert_global_data():
 
     pop_with_country = pop_with_country.drop(columns=['index_right'])
 
-    db_path = 'h3_raster/data/populations/kontur_population_20231101_COMBINED.db'
+    db_path = '/Users/mesposito/Desktop/yext_research/h3_raster/data/populations/kontur_population_20231101_COMBINED.db'
 
 
     conn = sqlite3.connect(db_path)
 
     pop_with_country.drop(columns=['geometry'], inplace=True)
-    pop_with_country.to_sql('population_with_country', conn, if_exists='replace', index=False)
+    pop_with_country.to_sql('hex_pops_r6', conn, if_exists='replace', index=False)
 
     conn.close()

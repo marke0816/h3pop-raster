@@ -1,3 +1,5 @@
+# resolution = 6
+
 import sqlite3
 import pandas as pd
 import h3raster
@@ -8,32 +10,60 @@ import os
 base_dir = os.path.dirname(__file__)
 db_path = os.path.join(base_dir, "data", "populations", "kontur_population_20231101_COMBINED.db")
 
-conn = sqlite3.connect(db_path)
+def query_sqlite(resolution):
+    """
+    Query the SQLite database for population data at the specified H3 resolution.
+    Parameters:
+    - resolution: The H3 resolution (6 or 8).
+    Returns:
+    - DataFrame containing country, population, and h3 columns.
+    """
 
-query = """
-SELECT country, population, h3 FROM population_with_country
-WHERE country IN ('GBR', 'ITA', 'DEU', 'ESP', 'USA', 'DNK', 'FRA', 'PRT',
-                 'AUS', 'AUT', 'BEL', 'BGR', 'HRV', 'CYP', 'CZE', 'EST', 'FIN',
-                 'GRC', 'HUN', 'IRL', 'LVA', 'LTU', 'LUX', 'MLT', 'NLD', 'POL',
-                 'ROU', 'SVK', 'SVN', 'SWE')
-ORDER BY population DESC
-"""
+    conn = sqlite3.connect(db_path)
+    
+    query_r6 = """
+    SELECT country, population, h3 FROM hex_pops_r6
+    WHERE country IN ('GBR', 'ITA', 'DEU', 'ESP', 'USA', 'DNK', 'FRA', 'PRT',
+                    'AUS', 'AUT', 'BEL', 'BGR', 'HRV', 'CYP', 'CZE', 'EST', 'FIN',
+                    'GRC', 'HUN', 'IRL', 'LVA', 'LTU', 'LUX', 'MLT', 'NLD', 'POL',
+                    'ROU', 'SVK', 'SVN', 'SWE')
+    ORDER BY population DESC
+    """
+    query_r8 = """
+    SELECT country, population, h3 FROM hex_pops_r8
+    ORDER BY population DESC
+    """
+    
+    if resolution == 6:
+        df =  pd.read_sql_query(query_r6, conn)
+    elif resolution == 8:
+        df =  pd.read_sql_query(query_r8, conn)
+    else:
+        raise ValueError("Unsupported resolution. Only 6 and 8 are currently supported.")
+    conn.close()
 
-df = pd.read_sql_query(query, conn)
+    return df
 
-conn.close()
-
-def get_top_centroids(count, plot=False):
+def get_top_centroids(count, resolution, plot=False):
     """
     Get the top populated hexes and their centroids.
     Parameters:
     - count: Number of top populated hexes to retrieve.
+    - resolution: The H3 resolution (6 or 8).
     - plot: If True, plot the hexes on a Folium map (default is False).
     Returns:
     - List of tuples containing latitude and longitude of the top count populated hexes.
     - Dictionary with country counts.
     - DataFrame with columns ['country', 'h3', 'lat', 'lng', 'population'] of selected hexes.
     """
+
+    if resolution == 6:
+        df = query_sqlite(6)
+    elif resolution == 8:
+        df = query_sqlite(8)
+    else:
+        raise ValueError("Unsupported resolution. Only 6 and 8 are currently supported.")
+
     top_count = df.sort_values(by='population', ascending=False).head(count)
     h3_list = top_count['h3'].tolist()
 
@@ -46,18 +76,27 @@ def get_top_centroids(count, plot=False):
 
     return h3raster.h3list_to_centroids(h3_list), country_counts_dict, top_count[['country', 'h3', 'lat', 'lng', 'population']]
 
-def get_top_centroids_US_EUR_choose_count(US_count, EUR_count, plot=False):
+def get_top_centroids_US_EUR_choose_count(US_count, EUR_count, resolution, plot=False):
     """
     Get the top populated hexes from the US and Europe.
     Parameters:
     - US_count: Number of top populated hexes to retrieve from the US.
     - EUR_count: Number of top populated hexes to retrieve from Europe.
+    - resolution: The H3 resolution (6 or 8).
     - plot: If True, plot the hexes on a Folium map (default is False).
     Returns:
     - List of tuples containing latitude and longitude of the top populated hexes.
     - Dictionary with country counts.
     - DataFrame with columns ['country', 'h3', 'lat', 'lng', 'population'] of selected hexes.
     """
+
+    if resolution == 6:
+        df = query_sqlite(6)
+    elif resolution == 8:
+        df = query_sqlite(8)
+    else:
+        raise ValueError("Unsupported resolution. Only 6 and 8 are currently supported.")
+
     us_df = df[df['country'] == 'US'].nlargest(US_count, 'population')
     eur_df = df[df['country'] != 'US'].nlargest(EUR_count, 'population')
 
@@ -74,7 +113,7 @@ def get_top_centroids_US_EUR_choose_count(US_count, EUR_count, plot=False):
 
     return h3raster.h3list_to_centroids(h3_list), country_counts_dict, combined_df[['country', 'h3', 'lat', 'lng', 'population']]
 
-def get_top_centroids_by_strategy(total_count, method='population', 
+def get_top_centroids_by_strategy(total_count, resolution, method='population', 
                                    min_per_country=1, threshold=None, 
                                    urban_fraction=1.0, plot=False,
                                    fixed_country=None, fixed_count=None):
@@ -83,6 +122,7 @@ def get_top_centroids_by_strategy(total_count, method='population',
 
     Parameters:
     - total_count: Total number of hexes to select.
+    - resolution: The H3 resolution (6 or 8).
     - method: Allocation method:
         'population' - proportional to country population (default)
         'uniform'    - same count for each country
@@ -103,6 +143,15 @@ def get_top_centroids_by_strategy(total_count, method='population',
         2. Dictionary {country: count_of_hexes}.
         3. DataFrame with columns ['country', 'h3', 'lat', 'lng', 'population'] of selected hexes.
     """
+
+
+    if resolution == 6:
+        df = query_sqlite(6)
+    elif resolution == 8:
+        df = query_sqlite(8)
+    else:
+        raise ValueError("Unsupported resolution. Only 6 and 8 are currently supported.")
+
     country_pop = df.groupby('country')['population'].sum()
     countries = country_pop.index.tolist()
 

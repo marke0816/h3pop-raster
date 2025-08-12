@@ -83,7 +83,7 @@ def zips_to_cells(zip_codes, resolution=8):
     else:
         zip_codes = [str(z) for z in zip_codes]
 
-    zcta = geopandas.read_file('h3_raster/data/tl_2020_us_zcta510.shp')
+    zcta = geopandas.read_file('/Users/mesposito/Desktop/yext_research/h3_raster/data/tl_2020_us_zcta510.shp')
     zcta_filtered = zcta[zcta['ZCTA5CE10'].isin(zip_codes)]
 
     if zcta_filtered.empty:

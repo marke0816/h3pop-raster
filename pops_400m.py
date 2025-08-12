@@ -3,20 +3,21 @@ import sqlite3
 from pathlib import Path
 
 def create_combined_population_db():
+
     """
     Combine multiple GeoPackage files containing population data into a single SQLite database.
     Each GeoPackage file is expected to have a 'population' table.
     """
 
     gpkg_files = [
-        "h3_raster/data/populations/kontur_population_DE_20231101.gpkg",
-        "h3_raster/data/populations/kontur_population_DK_20231101.gpkg",
-        "h3_raster/data/populations/kontur_population_FR_20231101.gpkg",
-        "h3_raster/data/populations/kontur_population_IT_20231101.gpkg",
-        "h3_raster/data/populations/kontur_population_ES_20231101.gpkg",
-        "h3_raster/data/populations/kontur_population_GB_20231101.gpkg",
-        "h3_raster/data/populations/kontur_population_US_20231101.gpkg",
-        "h3_raster/data/populations/kontur_population_PT_20231101.gpkg"
+        "/Users/mesposito/Desktop/yext_research/h3_raster/data/populations/kontur_population_DEU_20231101.gpkg",
+        "/Users/mesposito/Desktop/yext_research/h3_raster/data/populations/kontur_population_DNK_20231101.gpkg",
+        "/Users/mesposito/Desktop/yext_research/h3_raster/data/populations/kontur_population_FRA_20231101.gpkg",
+        "/Users/mesposito/Desktop/yext_research/h3_raster/data/populations/kontur_population_ITA_20231101.gpkg",
+        "/Users/mesposito/Desktop/yext_research/h3_raster/data/populations/kontur_population_ESP_20231101.gpkg",
+        "/Users/mesposito/Desktop/yext_research/h3_raster/data/populations/kontur_population_GBR_20231101.gpkg",
+        "/Users/mesposito/Desktop/yext_research/h3_raster/data/populations/kontur_population_USA_20231101.gpkg",
+        "/Users/mesposito/Desktop/yext_research/h3_raster/data/populations/kontur_population_PRT_20231101.gpkg"
     ]
 
     dfs = {}
@@ -36,9 +37,9 @@ def create_combined_population_db():
 
     all_dfs = pd.concat(dfs.values(), ignore_index=True)
 
-    conn = sqlite3.connect('h3_raster/data/populations/kontur_population_20231101_COMBINED.db')
+    conn = sqlite3.connect('/Users/mesposito/Desktop/yext_research/h3_raster/data/populations/kontur_population_20231101_COMBINED.db')
 
-    all_dfs.to_sql('hex_pops', conn, if_exists='replace', index=False)
+    all_dfs.to_sql('hex_pops_r8', conn, if_exists='replace', index=False)
 
     conn.commit()
     conn.close()
