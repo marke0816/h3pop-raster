@@ -12,6 +12,8 @@ h3 = "*"
 geodatasets = "*"
 contextily = "*"
 pandas = "*"
+timezonefinder = "*"
+pycountry = "*"
 
 [dev-packages]
 

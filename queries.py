@@ -1,4 +1,4 @@
-# resolution = 6
+# TODO: error handling, function documentation
 
 import sqlite3
 import pandas as pd
@@ -6,6 +6,10 @@ import h3raster
 import math
 import numpy as np
 import os
+from datetime import datetime
+import pycountry
+import pytz
+from timezonefinder import TimezoneFinder
 
 base_dir = os.path.dirname(__file__)
 db_path = os.path.join(base_dir, "data", "populations", "kontur_population_20231101_COMBINED.db")
@@ -44,6 +48,52 @@ def query_sqlite(resolution):
 
     return df
 
+def append_timezone(df):
+    """
+    Appends a timezone column with a utc offset float to a pandas dataframe using a the lat, lng columns.
+
+    Parameters:
+    - 'df': a pandas dataframe with 'lat' and 'lng' columns
+
+    Returns:
+    - the same pandas dataframe with a 'utc_offset' column containing the lat, lng pair's utc offset
+    """
+    tf = TimezoneFinder()
+
+    WINTER_DATE = datetime(2024, 1, 1)
+
+    def get_standard_utc_offset(lat, lng):
+        tz_name = tf.timezone_at(lat=lat, lng=lng)
+        if tz_name:
+            tz = pytz.timezone(tz_name)
+            offset_seconds = tz.utcoffset(WINTER_DATE).total_seconds()
+            return offset_seconds / 3600
+        return None
+
+    df["utc_offset"] = df.apply(lambda row: get_standard_utc_offset(row["lat"], row["lng"]), axis=1)
+
+    return df
+
+def iso3_to_iso2(df):
+    """
+    Convert iso3 country codes to their corresponding iso2 formats in a pandas dataframe with a 'country' column.
+
+    Parameters:
+    - 'df': a pandas dataframe with a 'country' column.
+
+    Returns:
+    - a pandas dataframe
+    """
+    def iso3_to_iso2(iso3):
+        try:
+            return pycountry.countries.get(alpha_3=iso3).alpha_2
+        except AttributeError:
+            return None
+    
+    df["country"] = df["country"].apply(iso3_to_iso2)
+
+    return df
+
 def get_top_centroids(count, resolution, plot=False):
     """
     Get the top populated hexes and their centroids.
@@ -54,7 +104,7 @@ def get_top_centroids(count, resolution, plot=False):
     Returns:
     - List of tuples containing latitude and longitude of the top count populated hexes.
     - Dictionary with country counts.
-    - DataFrame with columns ['country', 'h3', 'lat', 'lng', 'population'] of selected hexes.
+    - DataFrame with columns ['country', 'h3', 'lat', 'lng', 'population', 'utc_offset'] of selected hexes.
     """
 
     df = query_sqlite(resolution)
@@ -65,6 +115,8 @@ def get_top_centroids(count, resolution, plot=False):
     country_counts_dict = top_count['country'].value_counts().to_dict()
 
     top_count['lat'], top_count['lng'] = zip(*h3raster.h3list_to_centroids(h3_list))
+
+    top_count = iso3_to_iso2(append_timezone(top_count))
 
     if plot:
         h3raster.folium_plot_cells(h3_list)
@@ -82,7 +134,7 @@ def get_top_centroids_US_EUR_choose_count(US_count, EUR_count, resolution, plot=
     Returns:
     - List of tuples containing latitude and longitude of the top populated hexes.
     - Dictionary with country counts.
-    - DataFrame with columns ['country', 'h3', 'lat', 'lng', 'population'] of selected hexes.
+    - DataFrame with columns ['country', 'h3', 'lat', 'lng', 'population', 'utc_offset'] of selected hexes.
     """
 
     df = query_sqlite(resolution)
@@ -98,10 +150,12 @@ def get_top_centroids_US_EUR_choose_count(US_count, EUR_count, resolution, plot=
 
     combined_df['lat'], combined_df['lng'] = zip(*h3raster.h3list_to_centroids(combined_df['h3'].tolist()))
 
+    combined_df = iso3_to_iso2(append_timezone(combined_df))
+
     if plot:
         h3raster.folium_plot_cells(h3_list)
 
-    return h3raster.h3list_to_centroids(h3_list), country_counts_dict, combined_df[['country', 'h3', 'lat', 'lng', 'population']]
+    return h3raster.h3list_to_centroids(h3_list), country_counts_dict, combined_df[['country', 'h3', 'lat', 'lng', 'population', 'utc_offset']]
 
 def get_top_centroids_by_strategy(total_count, resolution, method='population', 
                                    min_per_country=1, threshold=None, 
@@ -131,7 +185,7 @@ def get_top_centroids_by_strategy(total_count, resolution, method='population',
     - Tuple:
         1. List of (lat, lon) tuples of selected hexes.
         2. Dictionary {country: count_of_hexes}.
-        3. DataFrame with columns ['country', 'h3', 'lat', 'lng', 'population'] of selected hexes.
+        3. DataFrame with columns ['country', 'h3', 'lat', 'lng', 'population', 'utc_offset] of selected hexes.
     """
 
 
@@ -211,7 +265,10 @@ def get_top_centroids_by_strategy(total_count, resolution, method='population',
     final_df['lat'], final_df['lng'] = zip(*h3raster.h3list_to_centroids(final_df['h3'].tolist()))
     h3_list = final_df['h3'].tolist()
 
+    final_df = iso3_to_iso2(append_timezone(final_df))
+
+
     if plot:
         h3raster.folium_plot_cells(h3_list)
 
-    return h3raster.h3list_to_centroids(h3_list), allocation.to_dict(), final_df[['country', 'h3', 'lat', 'lng', 'population']]
+    return h3raster.h3list_to_centroids(h3_list), allocation.to_dict(), final_df[['country', 'h3', 'lat', 'lng', 'population', 'utc_offset']]
