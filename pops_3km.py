@@ -11,7 +11,7 @@ def insert_global_data():
     pop_gdf = gpd.read_file(pop_gpkg_path, layer='population')
 
     def get_lat_lng(h3_cell):
-        return h3raster.h3list_to_centroids([h3_cell])[0]  # get the first (lat, lng) tuple
+        return h3raster.h3list_to_centroids([h3_cell])[0]
 
     pop_gdf['lat_lng'] = pop_gdf['h3'].apply(get_lat_lng)
     pop_gdf['lat'] = pop_gdf['lat_lng'].apply(lambda x: x[0])
@@ -23,7 +23,7 @@ def insert_global_data():
 
     pop_gdf['geometry'] = pop_gdf.apply(lambda row: Point(row['lng'], row['lat']), axis=1)
     pop_gdf = pop_gdf.set_geometry('geometry')
-    pop_gdf.crs = world_gdf.crs  # make sure CRS matches
+    pop_gdf.crs = world_gdf.crs
 
     pop_with_country = gpd.sjoin(pop_gdf, world_gdf[['geometry', 'iso3']], how='left', predicate='within')
 
@@ -36,7 +36,6 @@ def insert_global_data():
 
     conn = sqlite3.connect(db_path)
 
-    # Save the DataFrame pop_with_country (or filtered one) to a new table, e.g. 'population_with_country'
     pop_with_country.drop(columns=['geometry'], inplace=True)
     pop_with_country.to_sql('population_with_country', conn, if_exists='replace', index=False)
 
