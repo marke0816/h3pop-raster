@@ -57,12 +57,7 @@ def get_top_centroids(count, resolution, plot=False):
     - DataFrame with columns ['country', 'h3', 'lat', 'lng', 'population'] of selected hexes.
     """
 
-    if resolution == 6:
-        df = query_sqlite(6)
-    elif resolution == 8:
-        df = query_sqlite(8)
-    else:
-        raise ValueError("Unsupported resolution. Only 6 and 8 are currently supported.")
+    df = query_sqlite(resolution)
 
     top_count = df.sort_values(by='population', ascending=False).head(count)
     h3_list = top_count['h3'].tolist()
@@ -90,12 +85,7 @@ def get_top_centroids_US_EUR_choose_count(US_count, EUR_count, resolution, plot=
     - DataFrame with columns ['country', 'h3', 'lat', 'lng', 'population'] of selected hexes.
     """
 
-    if resolution == 6:
-        df = query_sqlite(6)
-    elif resolution == 8:
-        df = query_sqlite(8)
-    else:
-        raise ValueError("Unsupported resolution. Only 6 and 8 are currently supported.")
+    df = query_sqlite(resolution)
 
     us_df = df[df['country'] == 'US'].nlargest(US_count, 'population')
     eur_df = df[df['country'] != 'US'].nlargest(EUR_count, 'population')
@@ -145,12 +135,7 @@ def get_top_centroids_by_strategy(total_count, resolution, method='population',
     """
 
 
-    if resolution == 6:
-        df = query_sqlite(6)
-    elif resolution == 8:
-        df = query_sqlite(8)
-    else:
-        raise ValueError("Unsupported resolution. Only 6 and 8 are currently supported.")
+    df = query_sqlite(resolution)
 
     country_pop = df.groupby('country')['population'].sum()
     countries = country_pop.index.tolist()
