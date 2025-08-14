@@ -194,7 +194,6 @@ def get_top_centroids_by_strategy(total_count, resolution, method='population',
     country_pop = df.groupby('country')['population'].sum()
     countries = country_pop.index.tolist()
 
-    # Weight assignment
     if method == 'population':
         weights = country_pop
     elif method == 'uniform':
@@ -212,7 +211,6 @@ def get_top_centroids_by_strategy(total_count, resolution, method='population',
     else:
         raise ValueError(f"Unknown method '{method}'")
 
-    # If fixed_country is provided, adjust total_count for allocation
     if fixed_country and fixed_count is not None:
         if fixed_country not in countries:
             raise ValueError(f"{fixed_country} not found in data")
@@ -225,14 +223,13 @@ def get_top_centroids_by_strategy(total_count, resolution, method='population',
             allocation.loc[extra_country] += 1
         allocation[fixed_country] = fixed_count
     else:
-        # Standard allocation
         allocation = (weights / weights.sum() * total_count).apply(math.floor)
         allocation = allocation.apply(lambda x: max(min_per_country, x))
         while allocation.sum() < total_count:
             extra_country = ((weights / weights.sum() * total_count) - allocation).idxmax()
             allocation.loc[extra_country] += 1
 
-    # Select rows
+
     selected_rows = []
     used_h3 = set()
 
@@ -253,7 +250,6 @@ def get_top_centroids_by_strategy(total_count, resolution, method='population',
 
     final_df = pd.concat(selected_rows).copy()
 
-    # Top-up step if short
     if len(final_df) < total_count:
         missing = total_count - len(final_df)
         remaining_pool = df[~df['h3'].isin(used_h3)].sort_values(by='population', ascending=False)
@@ -261,7 +257,6 @@ def get_top_centroids_by_strategy(total_count, resolution, method='population',
             extra_rows = remaining_pool.head(missing)
             final_df = pd.concat([final_df, extra_rows])
 
-    # Add centroids
     final_df['lat'], final_df['lng'] = zip(*h3raster.h3list_to_centroids(final_df['h3'].tolist()))
     h3_list = final_df['h3'].tolist()
 
