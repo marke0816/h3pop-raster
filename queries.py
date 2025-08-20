@@ -11,8 +11,6 @@ import pycountry
 import pytz
 from timezonefinder import TimezoneFinder
 
-base_dir = os.path.dirname(__file__)
-db_path = os.path.join(base_dir, "data", "populations", "kontur_population_20231101_COMBINED.db")
 
 def query_sqlite(resolution):
     """
@@ -22,6 +20,9 @@ def query_sqlite(resolution):
     Returns:
     - DataFrame containing country, population, and h3 columns.
     """
+
+    base_dir = os.path.dirname(__file__)
+    db_path = os.path.join(base_dir, "data", "populations", "kontur_population_20231101_COMBINED.db")
 
     conn = sqlite3.connect(db_path)
     
