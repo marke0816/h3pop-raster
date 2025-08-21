@@ -1,4 +1,4 @@
-# TODO: error handling
+# TODO: error handling, function documentation, update README
 
 import h3
 import geopandas
