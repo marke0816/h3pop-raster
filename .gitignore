@@ -10,3 +10,4 @@ env/
 ENV/
 pipenv_*
 .vscode/
+.python-version
