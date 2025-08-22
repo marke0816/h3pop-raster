@@ -159,7 +159,7 @@ def get_top_centroids_US_EUR_choose_count(US_count, EUR_count, resolution, plot=
     return h3raster.h3list_to_centroids(h3_list), country_counts_dict, combined_df[['country', 'h3', 'lat', 'lng', 'population', 'utc_offset']]
 
 def get_top_centroids_by_strategy(total_count, resolution, method='population', 
-                                   min_per_country=1, threshold=None, 
+                                   min_per_country=0, threshold=None, 
                                    urban_fraction=1.0, plot=False,
                                    fixed_country=None, fixed_count=None):
     """
