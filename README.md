@@ -77,8 +77,6 @@ python samplecells.py 1000 8 --plot --output-csv results.csv
 
 The CLI prints:
 
-A list of selected centroids (lat, lon).
-
 A dictionary with allocation counts by country.
 
 A preview of the DataFrame of selected hexes (country, H3 index, lat, lng, population, UTC offset).
