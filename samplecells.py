@@ -54,6 +54,12 @@ def main():
         default=None,
         help="Number of hexes to assign to fixed_country."
     )
+    parser.add_argument(
+        "--output-csv",
+        type=str,
+        default=None,
+        help="File path to save the output DataFrame as CSV."
+    )
 
     args = parser.parse_args()
 
@@ -75,6 +81,10 @@ def main():
 
     print("\nPreview of DataFrame:")
     print(df.head())
+
+    if args.output_csv:
+        df.to_csv(args.output_csv, index=False)
+        print(f"\nDataFrame saved to {args.output_csv}")
 
 if __name__ == "__main__":
     main()
