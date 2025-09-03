@@ -6,6 +6,7 @@ import contextily as cx
 import matplotlib.pyplot as plt
 import folium
 from shapely.geometry import shape, mapping, Point 
+from pathlib import Path
 
 def plot_df(df, column=None, ax=None):
     "Plot based on the `geometry` column of a GeoPandas dataframe"
@@ -69,12 +70,16 @@ def h3list_to_centroids(cells):
 
     return [h3.cell_to_latlng(cell) for cell in cells]
 
-def zips_to_cells(zip_codes, resolution=8):
+def zips_to_cells(zip_codes, resolution=8, data_dir=None):
     """
     Convert one or more ZIP codes to H3 cell IDs at a specified resolution.
+
     Parameters:
     - zip_codes: A single ZIP code or a list of ZIP codes.
     - resolution: The H3 resolution (default is 8).
+    - data_dir: Optional base directory for the shapefile. If not provided,
+                assumes it lives in the same folder as this script.
+
     Returns:
     - List of H3 cell IDs covering the areas of the ZIP codes.
     """
@@ -83,17 +88,24 @@ def zips_to_cells(zip_codes, resolution=8):
     else:
         zip_codes = [str(z) for z in zip_codes]
 
-    zcta = geopandas.read_file('/Users/mesposito/Desktop/yext_research/h3_raster/data/zips/tl_2020_us_zcta510.shp')
+    if data_dir is None:
+        data_dir = Path(__file__).parent / "data" / "zips"
+    else:
+        data_dir = Path(data_dir)
+
+    shp_path = data_dir / "tl_2020_us_zcta510.shp"
+
+    zcta = geopandas.read_file(shp_path)
     zcta_filtered = zcta[zcta['ZCTA5CE10'].isin(zip_codes)]
 
     if zcta_filtered.empty:
-        raise ValueError(f"None of the provided ZIP codes were found in the dataset.")
+        raise ValueError("None of the provided ZIP codes were found in the dataset.")
     
     cells = []
     for polygon in zcta_filtered.geometry.values:
         cells.append(h3.geo_to_cells(polygon, res=resolution))
-    flat_cells = [cell for sublist in cells for cell in sublist]
 
+    flat_cells = [cell for sublist in cells for cell in sublist]
     return list(dict.fromkeys(flat_cells))
 
 def zip_to_centroid(zip_code, resolution=8):
@@ -126,17 +138,28 @@ def latlng_to_cell(lat, lng, resolution=8):
 
     return h3.latlng_to_cell(lat, lng, resolution)
 
-def latlng_to_zip_centroid(lat, lng, resolution=8):
+def latlng_to_zip_centroid(lat, lng, resolution=8, data_dir=None):
     """
     Convert latitude and longitude to the centroid of the ZIP code at a specified H3 resolution.
+
     Parameters:
     - lat: Latitude of the point.
     - lng: Longitude of the point.
     - resolution: The H3 resolution (default is 8).
+    - data_dir: Optional base directory for the shapefile. If not provided,
+                assumes it lives in the same folder as this script.
+
     Returns:
     - Dict containing (lat, lng) of the ZIP code centroid.
     """
-    zip_gdf = geopandas.read_file('h3_raster/data/zips/tl_2020_us_zcta510.shp')
+    if data_dir is None:
+        data_dir = Path(__file__).parent / "data" / "zips"
+    else:
+        data_dir = Path(data_dir)
+
+    shp_path = data_dir / "tl_2020_us_zcta510.shp"
+
+    zip_gdf = geopandas.read_file(shp_path)
     zip_gdf = zip_gdf.to_crs(epsg=4326)
 
     point = Point(lng, lat)
