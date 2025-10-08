@@ -5,30 +5,65 @@ import geopandas
 import contextily as cx
 import matplotlib.pyplot as plt
 import folium
+from shapely import geometry
 from shapely.geometry import shape, mapping, Point 
 from pathlib import Path
 
-def plot_df(df, column=None, ax=None):
-    "Plot based on the `geometry` column of a GeoPandas dataframe"
-    df = df.copy()
-    df = df.to_crs(epsg=3857)
+# def plot_df(df, column=None, ax=None):
+#     "Plot based on the `geometry` column of a GeoPandas dataframe"
+#     df = df.copy()
+#     df = df.to_crs(epsg=3857)
+#
+#     if ax is None:
+#         _, ax = plt.subplots(figsize=(8,8))
+#     ax.get_xaxis().set_visible(False)
+#     ax.get_yaxis().set_visible(False)
+#
+#     df.plot(
+#         ax=ax,
+#         alpha=0.5, edgecolor='k',
+#         column=column, categorical=True,
+#         legend=True, legend_kwds={'loc': 'upper left'},
+#     )
+#     cx.add_basemap(ax, crs=df.crs, source=cx.providers.CartoDB.Positron)
 
-    if ax is None:
-        _, ax = plt.subplots(figsize=(8,8))
-    ax.get_xaxis().set_visible(False)
-    ax.get_yaxis().set_visible(False)
 
-    df.plot(
-        ax=ax,
-        alpha=0.5, edgecolor='k',
-        column=column, categorical=True,
-        legend=True, legend_kwds={'loc': 'upper left'},
-    )
-    cx.add_basemap(ax, crs=df.crs, source=cx.providers.CartoDB.Positron)
+def plot_df(df, map_location=None, zoom_start=11):
+    """
+    Plot a GeoDataFrame on a Folium map
 
-def plot_shape(shape, ax=None):
+    Parameters
+    ----------
+    df : GeoDataFrame
+        GeoDataFrame with a geometry column
+    map_location : (lat, lon), Optional
+        Center of map.  If None, use centroid of all geometries.
+    zoom_start: int
+        Initial zoom level
+    """
+    df = df.to_crs(epsg=4326)
+
+    if map_location is None:
+        centroid = df.unary_union.centroid
+        map_location = [centroid.y, centroid.x]
+
+    m = folium.Map(location=map_location, zoom_start=zoom_start)
+
+    folium.GeoJson(
+        df.__geo_interface__,
+        style_function=lambda x: {
+            "fillColor": "blue",
+            "color": "blue",
+            "weight": 2,
+            "fillOpacity": 0.4,
+        },
+    ).add_to(m)
+
+    m.show_in_browser()
+
+def plot_shape(shape, map_location=None, zoom_start=11):
     df = geopandas.GeoDataFrame({'geometry': [shape]}, crs='EPSG:4326')
-    plot_df(df, ax=ax)
+    plot_df(df, map_location=map_location, zoom_start=zoom_start)
 
 def plot_cells(cells, ax=None):
     shape = h3.cells_to_h3shape(cells)
@@ -172,3 +207,43 @@ def latlng_to_zip_centroid(lat, lng, resolution=8, data_dir=None):
         raise ValueError(f"No ZIP code found for the coordinates ({lat}, {lng}).")
     
     return {zip_code: zip_to_centroid(zip_code, resolution=resolution)}
+
+def plot_zip(zip_code, data_dir=None, zoom_start=11):
+    """
+    Plot a single ZIP code polygon using plot_shape().
+
+    Parameters
+    __________
+    zip_code : str
+        The 5-digit ZIP code to plot.
+    shp_path : Path or str, Optional
+        Path to the shapefile with ZIP code geometries
+    zoom_start : int, Optional
+        Initial zoom level for the folium map
+
+    Returns
+    _______
+    folium.Map
+        Folium map centered on the requested ZIP code
+    """
+
+    if data_dir is None:
+        data_dir = Path(__file__).parent / "data" / "zips"
+    else:
+        data_dir = Path(data_dir)
+
+    shp_path = data_dir / "tl_2020_us_zcta510.shp"
+
+    gdf = geopandas.read_file(shp_path)
+
+    row = gdf.loc[gdf["ZCTA5CE10"] == str(zip_code)]
+
+    if row.empty:
+        raise ValueError(f"ZIP code {zip_code} not found in {shp_path}")
+
+    shape = row.iloc[0].geometry
+
+    plot_shape(shape, zoom_start=zoom_start)
+
+
+
