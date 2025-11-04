@@ -16,7 +16,7 @@ def query_sqlite(resolution):
     """
     Query the SQLite database for population data at the specified H3 resolution.
     Parameters:
-    - resolution: The H3 resolution (4, 6, or 8).
+    - resolution: The H3 resolution (4, 5, 6, or 8).
     Returns:
     - DataFrame containing country, population, and h3 columns.
     """
@@ -27,6 +27,15 @@ def query_sqlite(resolution):
     conn = sqlite3.connect(db_path)
 
     query_r4 = """
+    SELECT country, population, h3 FROM hex_pops_r4
+    WHERE country IN ('GBR', 'ITA', 'DEU', 'ESP', 'USA', 'DNK', 'FRA', 'PRT',
+                    'AUS', 'AUT', 'BEL', 'BGR', 'HRV', 'CYP', 'CZE', 'EST', 'FIN',
+                    'GRC', 'HUN', 'IRL', 'LVA', 'LTU', 'LUX', 'MLT', 'NLD', 'POL',
+                    'ROU', 'SVK', 'SVN', 'SWE')
+    ORDER BY population DESC
+    """
+
+    query_r5 = """
     SELECT country, population, h3 FROM hex_pops_r4
     WHERE country IN ('GBR', 'ITA', 'DEU', 'ESP', 'USA', 'DNK', 'FRA', 'PRT',
                     'AUS', 'AUT', 'BEL', 'BGR', 'HRV', 'CYP', 'CZE', 'EST', 'FIN',
@@ -53,12 +62,14 @@ def query_sqlite(resolution):
     """
     if resolution == 4:
         df =  pd.read_sql_query(query_r4, conn)
+    elif resolution == 5:
+        df =  pd.read_sql_query(query_r5, conn)
     elif resolution == 6:
         df =  pd.read_sql_query(query_r6, conn)
     elif resolution == 8:
         df =  pd.read_sql_query(query_r8, conn)
     else:
-        raise ValueError("Unsupported resolution. Only 4, 6, and 8 are currently supported.")
+        raise ValueError("Unsupported resolution. Only 4, 5, 6, and 8 are currently supported.")
     conn.close()
 
     return df
@@ -181,7 +192,7 @@ def get_top_centroids_by_strategy(total_count, resolution, method='population',
 
     Parameters:
     - total_count: Total number of hexes to select.
-    - resolution: The H3 resolution (4, 6, or 8).
+    - resolution: The H3 resolution (4, 5, 6, or 8).
     - method: Allocation method:
         'population' - proportional to country population (default)
         'uniform'    - same count for each country

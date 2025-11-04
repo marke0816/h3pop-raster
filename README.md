@@ -14,7 +14,7 @@ python samplecells.py <total_count> <resolution> [options]
 
 - total_count – total number of hexagons to select.
 
-- resolution – H3 resolution (4, 6, or 8).
+- resolution – H3 resolution (4, 5, 6, or 8).
 
 ### Options
 

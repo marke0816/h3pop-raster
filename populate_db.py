@@ -4,6 +4,7 @@ import pandas as pd
 from shapely.geometry import Point
 import h3raster
 from pathlib import Path
+import h3
 
 def insert_global_data_r6(data_dir=None):
     """Insert global population data with country codes into a SQLite database.
@@ -180,3 +181,87 @@ def insert_by_country_data_r8(data_dir=None):
     conn.commit()
     conn.close()
 
+def aggregate_r8_to_r5_with_country_latlng(
+    data_dir=None,
+    db_rel="populations/kontur_population_20231101_COMBINED.db",
+    table_in="hex_pops_r8",
+    table_out="hex_pops_r5",
+    world_shp_rel="world-administrative-boundaries/world-administrative-boundaries.shp",
+    chunksize=1_000_000
+):
+    """
+    Aggregate res-8 populations to res-5 by summing children -> parents,
+    attach centroid lat/lng , assign country via spatial join.
+
+    Input  (SQLite): table_in(h3 TEXT, population REAL, country TEXT, lat REAL, lng REAL)
+    Output (SQLite): table_out(h3 TEXT, population REAL, country TEXT, lat REAL, lng REAL)
+    """
+
+    data_dir = Path(__file__).parent / "data" if data_dir is None else Path(data_dir)
+    db_path = data_dir / db_rel
+    world_shp_path = data_dir / world_shp_rel
+
+    def get_lat_lng(h3_cell):
+        return h3raster.h3list_to_centroids([h3_cell])[0]
+
+    conn = sqlite3.connect(db_path)
+    cur = conn.cursor()
+
+    cur.execute(f"PRAGMA table_info('{table_in}')")
+    cols = {r[1] for r in cur.fetchall()}
+    required = {"h3", "population"}
+    missing = required - cols
+    if missing:
+        conn.close()
+        raise ValueError(f"{table_in} missing columns: {missing}")
+
+    # aggregation
+    parent_sums = {}
+    for chunk in pd.read_sql_query(
+        f"SELECT h3, population FROM {table_in}",
+        conn,
+        chunksize=chunksize
+    ):
+        # map each r8 cell to its r5 parent
+        chunk["h3_r5"] = chunk["h3"].map(lambda h: h3.cell_to_parent(h, 5))
+        summed = chunk.groupby("h3_r5", as_index=True)["population"].sum()
+        for parent, s in summed.items():
+            parent_sums[parent] = parent_sums.get(parent, 0.0) + float(s)
+
+    # build r5 df
+    parents = pd.DataFrame(
+        {"h3": list(parent_sums.keys()), "population": list(parent_sums.values())}
+    )
+
+    # centroid lat/lng
+    parents["lat"], parents["lng"] = zip(*parents["h3"].map(get_lat_lng))
+
+    # assign country via spatial join
+    world_gdf = gpd.read_file(world_shp_path)
+    parents_gdf = gpd.GeoDataFrame(
+        parents,
+        geometry=[Point(xy) for xy in zip(parents["lng"], parents["lat"])],
+        crs=world_gdf.crs
+    )
+    joined = gpd.sjoin(
+        parents_gdf,
+        world_gdf[["geometry", "iso3"]],
+        how="left",
+        predicate="within"
+    ).rename(columns={"iso3": "country"}).drop(columns=["index_right"])
+
+    # write to sqlite
+    cur.execute(f"DROP TABLE IF EXISTS {table_out}")
+    conn.commit()
+
+    joined[["h3", "population", "country", "lat", "lng"]].to_sql(
+        table_out, conn, if_exists="replace", index=False
+    )
+    cur.execute(f"CREATE INDEX IF NOT EXISTS idx_{table_out}_h3 ON {table_out}(h3)")
+    cur.execute(f"CREATE INDEX IF NOT EXISTS idx_{table_out}_country ON {table_out}(country)")
+    conn.commit()
+    conn.close()
+
+    print(f"Wrote {len(joined):,} r5 cells with population, country, lat, lng to '{table_out}'")
+
+aggregate_r8_to_r5_with_country_latlng()
