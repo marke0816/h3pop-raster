@@ -286,7 +286,7 @@ def get_top_centroids_by_strategy(total_count, resolution, method='population',
     final_df['lat'], final_df['lng'] = zip(*h3raster.h3list_to_centroids(final_df['h3'].tolist()))
     h3_list = final_df['h3'].tolist()
 
-    final_df = iso3_to_iso2(append_timezone(final_df))
+    final_df = append_timezone(final_df)
 
 
     if plot:
