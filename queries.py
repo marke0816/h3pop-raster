@@ -36,7 +36,7 @@ def query_sqlite(resolution):
     """
 
     query_r5 = """
-    SELECT country, population, h3 FROM hex_pops_r4
+    SELECT country, population, h3 FROM hex_pops_r5
     WHERE country IN ('GBR', 'ITA', 'DEU', 'ESP', 'USA', 'DNK', 'FRA', 'PRT',
                     'AUS', 'AUT', 'BEL', 'BGR', 'HRV', 'CYP', 'CZE', 'EST', 'FIN',
                     'GRC', 'HUN', 'IRL', 'LVA', 'LTU', 'LUX', 'MLT', 'NLD', 'POL',
