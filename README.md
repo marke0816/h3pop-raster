@@ -82,3 +82,9 @@ A dictionary with allocation counts by country.
 A preview of the DataFrame of selected hexes (country, H3 index, lat, lng, population, UTC offset).
 
 If `--output-csv` is provided, the full DataFrame is saved to the specified CSV file.
+
+Here is an example of 1500 of the most populous cells chosen from Europe using the sqrt flag and a closer look at Northern Italy.
+
+![Europe](examples/Screenshot_2026-01-12_at_2.59.13_PM.png)
+
+![Northern Italy](examples/Screenshot_2026-01-12_at_3.00.00_PM.png)
