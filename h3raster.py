@@ -67,11 +67,11 @@ def plot_shape(shape, map_location=None, zoom_start=11):
 
 def plot_cells(cells, ax=None):
     shape = h3.cells_to_h3shape(cells)
-    plot_shape(shape, ax=ax)
+    plot_shape(shape)
 
 def plot_shape_and_cells(shape, res=9):
     fig, axs = plt.subplots(1,2, figsize=(10,5), sharex=True, sharey=True)
-    plot_shape(shape, ax=axs[0])
+    plot_shape(shape)
     plot_cells(h3.h3shape_to_cells(shape, res), ax=axs[1])
     fig.tight_layout()
 

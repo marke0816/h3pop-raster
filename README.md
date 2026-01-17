@@ -230,4 +230,8 @@ h3raster.plot_zip("94102", zoom_start=12)
 # Convert H3 cells to centroids
 centroids = h3raster.h3list_to_centroids(cells)
 print(f"First centroid: {centroids[0]}")
+
+Here is an example of using these library functions to convert the 60615 ZIP code in Chicago, IL to H3 cells at resolution 10.
+
+![Chicago](examples/60615_h3.png)
 ```
